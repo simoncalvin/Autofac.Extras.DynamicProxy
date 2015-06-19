@@ -129,6 +129,22 @@ namespace Autofac.Extras.Tests.DynamicProxy2
         }
 
         [Test]
+        public void CanResolveInterceptorFromComponentContext()
+        {
+            const string optionsServiceName = "improbable service name";
+
+            var builder = new ContainerBuilder();
+            builder.Register(c => new ProxyGenerationOptions(new InterceptOnlyJ())).Named<ProxyGenerationOptions>(optionsServiceName);
+            builder.RegisterType<C>().As<IHasIAndJ>().EnableInterfaceInterceptors(optionsServiceName);
+            builder.RegisterType<AddOneInterceptor>();
+            builder.RegisterType<AddTenInterceptor>();
+            var cpt = builder.Build().Resolve<IHasIAndJ>();
+
+            Assert.AreEqual(10, cpt.GetI());
+            Assert.AreEqual(21, cpt.GetJ());
+        }
+
+        [Test]
         public void CanInterceptMethodsWithSpecificInterceptors()
         {
             var options = new ProxyGenerationOptions { Selector = new MyInterceptorSelector() };
@@ -142,6 +158,5 @@ namespace Autofac.Extras.Tests.DynamicProxy2
             Assert.AreEqual(11, cpt.GetI());
             Assert.AreEqual(20, cpt.GetJ());
         }
-
     }
 }

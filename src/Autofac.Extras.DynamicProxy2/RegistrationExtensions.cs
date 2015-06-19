@@ -170,7 +170,7 @@ namespace Autofac.Extras.DynamicProxy2
             EnableInterfaceInterceptors<TLimit, TActivatorData, TSingleRegistrationStyle>(
                 this IRegistrationBuilder<TLimit, TActivatorData, TSingleRegistrationStyle> registration)
         {
-            return EnableInterfaceInterceptors(registration, null);
+            return EnableInterfaceInterceptors(registration, c => ProxyGenerationOptions.Default);
         }
 
         /// <summary>
@@ -186,6 +186,41 @@ namespace Autofac.Extras.DynamicProxy2
         public static IRegistrationBuilder<TLimit, TActivatorData, TSingleRegistrationStyle>
             EnableInterfaceInterceptors<TLimit, TActivatorData, TSingleRegistrationStyle>(
                 this IRegistrationBuilder<TLimit, TActivatorData, TSingleRegistrationStyle> registration, ProxyGenerationOptions options)
+        {
+            return EnableInterfaceInterceptors(registration, c => options);
+        }
+
+        /// <summary>
+        /// Enable interface interception on the target type. Interceptors will be determined
+        /// via Intercept attributes on the class or interface, or added with InterceptedBy() calls.
+        /// </summary>
+        /// <typeparam name="TLimit">Registration limit type.</typeparam>
+        /// <typeparam name="TActivatorData">Activator data type.</typeparam>
+        /// <typeparam name="TSingleRegistrationStyle">Registration style.</typeparam>
+        /// <param name="registration">Registration to apply interception to.</param>
+        /// <param name="optionsServiceName">Registered service name of the proxy generation options to apply.</param>
+        /// <returns>Registration builder allowing the registration to be configured.</returns>
+        public static IRegistrationBuilder<TLimit, TActivatorData, TSingleRegistrationStyle>
+            EnableInterfaceInterceptors<TLimit, TActivatorData, TSingleRegistrationStyle>(
+                this IRegistrationBuilder<TLimit, TActivatorData, TSingleRegistrationStyle> registration, string optionsServiceName)
+        {
+            return EnableInterfaceInterceptors(registration, c => c.ResolveNamed<ProxyGenerationOptions>(optionsServiceName));
+        }
+
+        /// <summary>
+        /// Enable interface interception on the target type. Interceptors will be determined
+        /// via Intercept attributes on the class or interface, or added with InterceptedBy() calls.
+        /// </summary>
+        /// <typeparam name="TLimit">Registration limit type.</typeparam>
+        /// <typeparam name="TActivatorData">Activator data type.</typeparam>
+        /// <typeparam name="TSingleRegistrationStyle">Registration style.</typeparam>
+        /// <param name="registration">Registration to apply interception to.</param>
+        /// <param name="optionsSelector">Delegate providing proxy generation options to apply.</param>
+        /// <returns>Registration builder allowing the registration to be configured.</returns>
+        public static IRegistrationBuilder<TLimit, TActivatorData, TSingleRegistrationStyle>
+            EnableInterfaceInterceptors<TLimit, TActivatorData, TSingleRegistrationStyle>(
+                this IRegistrationBuilder<TLimit, TActivatorData, TSingleRegistrationStyle> registration,
+                Func<IComponentContext, ProxyGenerationOptions> optionsSelector)
         {
             if (registration == null)
             {
@@ -208,9 +243,8 @@ namespace Autofac.Extras.DynamicProxy2
                     .Cast<IInterceptor>()
                     .ToArray();
 
-                e.Instance = options == null
-                    ? ProxyGenerator.CreateInterfaceProxyWithTarget(theInterface, interfaces, e.Instance, interceptors)
-                    : ProxyGenerator.CreateInterfaceProxyWithTarget(theInterface, interfaces, e.Instance, options, interceptors);
+                e.Instance = ProxyGenerator.CreateInterfaceProxyWithTarget(
+                    theInterface, interfaces, e.Instance, optionsSelector(e.Context), interceptors);
             });
 
             return registration;
